@@ -24,7 +24,7 @@ huggingface.co - it will NOT work in a locked-down sandbox.
 import argparse
 import io
 import sys
-import textwrap
+
 import time
 
 import numpy as np
@@ -84,42 +84,7 @@ def load_image_from_url(url: str) -> Image.Image:
 # ----------------------------------------------------------------------
 # Step 2: detect text regions (boxes only - no recognition yet)
 # ----------------------------------------------------------------------
-def detect_boxes(image: Image.Image, reader: easyocr.Reader,
-                  min_area_frac=0.0002, max_area_frac=0.15):
-    """
-    Uses EasyOCR purely as a text-region DETECTOR (not a recognizer).
-    Returns a list of (x1, y1, x2, y2) rectangles, filtered to drop
-    obviously-wrong detections (near-empty slivers, or huge regions that
-    are almost certainly the detector getting confused by manga art).
-    """
-    np_img = np.array(image)
-    img_w, img_h = image.size
-    img_area = img_w * img_h
-
-    horizontal_list, free_list = reader.detect(np_img)
-    boxes = []
-
-    # horizontal_list entries: [x_min, x_max, y_min, y_max]
-    for x_min, x_max, y_min, y_max in horizontal_list[0]:
-        boxes.append((x_min, y_min, x_max, y_max))
-
-    # free_list entries: quadrilateral point lists -> convert to rect
-    for quad in free_list[0]:
-        xs = [p[0] for p in quad]
-        ys = [p[1] for p in quad]
-        boxes.append((min(xs), min(ys), max(xs), max(ys)))
-
-    filtered = []
-    for (x1, y1, x2, y2) in boxes:
-        w, h = x2 - x1, y2 - y1
-        if w <= 0 or h <= 0:
-            continue
-        area_frac = (w * h) / img_area
-        if area_frac < min_area_frac or area_frac > max_area_frac:
-            continue  # too tiny (noise) or too huge (bad detection)
-        filtered.append((int(x1), int(y1), int(x2), int(y2)))
-
-    return filtered
+from bubble_detector import detect_bubbles
 
 
 # ----------------------------------------------------------------------
@@ -197,45 +162,140 @@ def translate_all(texts, target: str = "en", source: str = "ja") -> list:
 # ----------------------------------------------------------------------
 # Step 5: redraw the page with translated text in place of the original
 # ----------------------------------------------------------------------
-def pick_font_size(box, text, font_path=None, max_size=40, min_size=10):
-    x1, y1, x2, y2 = box
-    box_w, box_h = x2 - x1, y2 - y1
-    size = max_size
-    while size > min_size:
+def _get_text_dimensions(text_line, font):
+    # Pango backend (used on Linux) and Raqm backend (used on Mac/Windows)
+    # behave differently. Use textbbox to get a consistent result.
+    if hasattr(font, "getbbox"):
+        bbox = font.getbbox(text_line)
+        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+    else:
+        return font.getsize(text_line)
+
+def _wrap_text_and_find_font(text, width, height, font_path, max_size, min_size):
+    """
+    Finds the best font size and wraps text to fit a box.
+    This is a more complex implementation that avoids using textwrap directly
+    and tries to find a visually pleasing line break.
+    """
+    words = text.split()
+    
+    for size in range(max_size, min_size - 1, -1):
         font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default()
-        wrapped = textwrap.wrap(text, width=max(1, int(box_w / (size * 0.55))))
-        line_h = size * 1.15
-        total_h = line_h * max(1, len(wrapped))
-        if total_h <= box_h + 10:
-            return font, wrapped, size
-        size -= 2
+        line_height = sum(_get_text_dimensions("A", font)) * 0.9  # Approx height
+
+        lines = []
+        current_line = ""
+        
+        if not words:
+            continue
+
+        current_line = words[0]
+        for word in words[1:]:
+            # Check if adding the new word exceeds the width
+            if _get_text_dimensions(current_line + " " + word, font)[0] <= width:
+                current_line += " " + word
+            else:
+                # If it exceeds, push the current line and start a new one
+                lines.append(current_line)
+                current_line = word
+        lines.append(current_line)
+        
+        total_height = len(lines) * line_height
+        
+        if total_height <= height:
+            max_line_width = 0
+            for l in lines:
+                max_line_width = max(max_line_width, _get_text_dimensions(l, font)[0])
+
+            if max_line_width <= width:
+                 return font, lines, size
+
+    # If no size fits, return the smallest font and best-effort wrap
     font = ImageFont.truetype(font_path, min_size) if font_path else ImageFont.load_default()
-    wrapped = textwrap.wrap(text, width=max(1, int(box_w / (min_size * 0.55))))
-    return font, wrapped, min_size
+    line_height = sum(_get_text_dimensions("A", font)) * 0.9
+    lines = []
+    current_line = words[0]
+    for word in words[1:]:
+        if _get_text_dimensions(current_line + " " + word, font)[0] <= width:
+            current_line += " " + word
+        else:
+            lines.append(current_line)
+            current_line = word
+    lines.append(current_line)
+
+    return font, lines, min_size
 
 
 def redraw_page(image: Image.Image, boxes, translations, font_path=None):
+    """
+    Erases the original text bubbles and draws new, clean bubbles with the
+    translated text.
+    """
     out = image.copy()
     draw = ImageDraw.Draw(out)
 
     for box, translated in zip(boxes, translations):
         if not translated.strip():
             continue
+        
+        # Erase the old bubble by drawing a white box over it
         x1, y1, x2, y2 = box
+        # Use a slightly larger box to ensure full erasure of bubble tail etc.
+        draw.rectangle([x1 - 10, y1 - 10, x2 + 10, y2 + 10], fill="white", width=0)
 
-        draw.rectangle([x1 - 2, y1 - 2, x2 + 2, y2 + 2], fill="white")
+        # Determine the size needed for the translated text
+        # Use a slightly smaller box to get the font size, to leave padding
+        font, wrapped_lines, size = _wrap_text_and_find_font(
+            translated, (x2 - x1) * 0.9, (y2 - y1) * 0.9, font_path, max_size=32, min_size=8
+        )
+        full_text = "\n".join(line.strip() for line in wrapped_lines)
+        if not full_text:
+            continue
 
-        font, wrapped_lines, size = pick_font_size(box, translated, font_path)
-        line_h = size * 1.15
-        total_h = line_h * len(wrapped_lines)
-        start_y = y1 + max(0, ((y2 - y1) - total_h) / 2)
+        # Get the dimensions of the wrapped text block
+        try:
+            text_bbox = draw.multiline_textbbox((0, 0), full_text, font=font, align="center", spacing=4)
+            text_w = text_bbox[2] - text_bbox[0]
+            text_h = text_bbox[3] - text_bbox[1]
+        except AttributeError:
+            text_w, text_h = 0, 0
+            line_height = sum(_get_text_dimensions("A", font)) * 0.9
+            for line in wrapped_lines:
+                lw, _ = _get_text_dimensions(line.strip(), font)
+                text_w = max(text_w, lw)
+            text_h = len(wrapped_lines) * line_height
 
-        for i, line in enumerate(wrapped_lines):
-            bbox = draw.textbbox((0, 0), line, font=font)
-            line_w = bbox[2] - bbox[0]
-            text_x = x1 + max(0, ((x2 - x1) - line_w) / 2)
-            text_y = start_y + i * line_h
-            draw.text((text_x, text_y), line, fill="black", font=font)
+
+        # Create a new bubble that fits the text
+        bubble_w = text_w + 40  # Add horizontal padding
+        bubble_h = text_h + 30  # Add vertical padding
+        
+        # Center the new bubble where the old one was
+        center_x = x1 + (x2 - x1) / 2
+        center_y = y1 + (y2 - y1) / 2
+        
+        new_bubble_x1 = center_x - bubble_w / 2
+        new_bubble_y1 = center_y - bubble_h / 2
+        new_bubble_x2 = center_x + bubble_w / 2
+        new_bubble_y2 = center_y + bubble_h / 2
+        
+        # Draw the new bubble (white fill, black outline)
+        draw.ellipse(
+            [new_bubble_x1, new_bubble_y1, new_bubble_x2, new_bubble_y2],
+            fill="white",
+            outline="black",
+            width=2
+        )
+
+        # Draw the text in the new bubble
+        try:
+            draw.multiline_text((center_x, center_y), full_text, fill="black", font=font,
+                                align="center", anchor="mm", spacing=4)
+        except TypeError:
+            text_x = center_x - text_w / 2
+            text_y = center_y - text_h / 2
+            draw.multiline_text((text_x, text_y), full_text, fill="black", font=font, 
+                                align="center", spacing=4)
 
     return out
 
@@ -256,8 +316,8 @@ def translate_manga_page(url: str, target: str = "en", out_path: str = "translat
     print("[2/6] Loading EasyOCR detector (first run downloads models)")
     reader = easyocr.Reader(["ja", "en"], gpu=False)
 
-    print("[3/6] Detecting text regions")
-    boxes = detect_boxes(image, reader)
+    print("[3/6] Detecting speech bubbles")
+    boxes = detect_bubbles(image)
     print(f"      -> Found {len(boxes)} candidate region(s) after filtering")
 
     print(f"[4/6] Recognizing text (engine={engine})")
@@ -284,7 +344,11 @@ def translate_manga_page(url: str, target: str = "en", out_path: str = "translat
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Translate a manga page from an image URL.")
+    parser = argparse.ArgumentParser(
+        description="Translates a manga page from a direct image URL. Example: \n"
+                    "  python manga_translator.py \"http://example.com/manga_page.jpg\"",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
     parser.add_argument("url", help="URL of the manga page image")
     parser.add_argument("--target", default="en", help="Target language code (default: en)")
     parser.add_argument("--out", default="translated.png", help="Output image path")
