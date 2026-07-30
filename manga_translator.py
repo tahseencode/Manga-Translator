@@ -3,13 +3,16 @@
 
 import argparse
 import io
+import os
 import sys
 import textwrap
 import time
+from urllib.parse import urljoin
 
 import numpy as np
 import requests
 from PIL import Image, ImageDraw, ImageFont
+from bs4 import BeautifulSoup
 import easyocr
 from deep_translator import GoogleTranslator
 
@@ -61,6 +64,34 @@ def load_image_from_url(url: str) -> Image.Image:
         ) from e
     return img
 
+def find_image_urls_on_page(page_url: str) -> list:
+    """
+    Scrapes a webpage to find all direct image URLs that look like manga pages.
+    """
+    print(f"      Scraping {page_url} for image links...")
+    headers = {"User-Agent": "Mozilla/5.0 (manga-translator-script)"}
+    try:
+        resp = requests.get(page_url, headers=headers, timeout=20)
+        resp.raise_for_status()
+    except requests.RequestException as e:
+        print(f"  [!] Failed to fetch chapter page: {e}", file=sys.stderr)
+        return []
+
+    soup = BeautifulSoup(resp.content, 'html.parser')
+    img_tags = soup.find_all('img')
+    
+    image_urls = []
+    for img in img_tags:
+        src = img.get('src')
+        if not src:
+            continue
+        # Check for common image file extensions
+        if any(src.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png', '.webp']):
+            # Convert relative URLs to absolute URLs
+            full_url = urljoin(page_url, src)
+            if full_url not in image_urls:
+                image_urls.append(full_url)
+    return sorted(image_urls)
 
 # ----------------------------------------------------------------------
 # Step 2: detect text regions (boxes only - no recognition yet)
@@ -333,11 +364,42 @@ if __name__ == "__main__":
                         help="Text detection method to use (default: easyocr)")
     parser.add_argument("--target", default="en", help="Target language code (default: en)")
     parser.add_argument("--out", default="translated.png", help="Output image path")
-    parser.add_argument("--font", default=None, help="Path to a .ttf font file (recommended for non-English targets)")
+
+    # --- Set a default font ---
+    # Looks for 'animeace2.ttf' in the same directory as the script.
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    default_font = os.path.join(script_dir, "animeace2.ttf")
+    if not os.path.exists(default_font):
+        default_font = None # Fallback to system default if not found
+    parser.add_argument("--font", default=default_font, help="Path to a .ttf font file. Defaults to 'animeace2.ttf' if present.")
+    parser.add_argument("--chapter", action="store_true", help="Translate a full chapter by scraping all images from the URL.")
+    parser.add_argument("--out-dir", default="translated_chapter", help="Output directory for chapter translation.")
     parser.add_argument("--engine", default="manga-ocr", choices=["manga-ocr", "easyocr"],
                          help="Recognition engine (manga-ocr is much more accurate on manga text)")
     args = parser.parse_args()
 
-    translate_manga_page(args.url, detector=args.detector, target=args.target,
-                         out_path=args.out, font_path=args.font,
-                         engine=args.engine)
+    if args.chapter:
+        print(f"--- Translating Chapter from URL: {args.url} ---")
+        image_urls = find_image_urls_on_page(args.url)
+        if not image_urls:
+            sys.exit("  [!] No image URLs found on the page. Exiting.")
+        
+        print(f"      -> Found {len(image_urls)} images to translate.")
+        
+        # Create output directory
+        os.makedirs(args.out_dir, exist_ok=True)
+        
+        for i, img_url in enumerate(image_urls):
+            print(f"\n--- Translating Page {i+1}/{len(image_urls)} ---")
+            output_filename = os.path.join(args.out_dir, f"page_{i+1:02d}.png")
+            try:
+                translate_manga_page(img_url, detector=args.detector, target=args.target,
+                                     out_path=output_filename, font_path=args.font,
+                                     engine=args.engine)
+            except Exception as e:
+                print(f"  [!!!] Failed to translate page {i+1} ({img_url}): {e}", file=sys.stderr)
+        print("\n--- Chapter Translation Complete ---")
+    else:
+        translate_manga_page(args.url, detector=args.detector, target=args.target,
+                             out_path=args.out, font_path=args.font,
+                             engine=args.engine)
