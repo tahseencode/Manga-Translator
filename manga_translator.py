@@ -103,6 +103,43 @@ def detect_boxes(image: Image.Image, reader: easyocr.Reader,
     return filtered
 
 
+def merge_boxes(boxes, proximity_thresh=15):
+    """
+    Merges overlapping or nearby bounding boxes. This is crucial for cases
+    where a single speech bubble is incorrectly detected as multiple
+    separate text regions.
+    """
+    if not boxes:
+        return []
+
+    # sort by x-coordinate
+    boxes.sort(key=lambda b: b[0])
+    merged_boxes = []
+    
+    current_box = list(boxes[0])
+
+    for i in range(1, len(boxes)):
+        next_box = boxes[i]
+        # Check for overlap or proximity
+        # Expand current_box slightly to check for proximity
+        prox_x1 = current_box[0] - proximity_thresh
+        prox_y1 = current_box[1] - proximity_thresh
+        prox_x2 = current_box[2] + proximity_thresh
+        prox_y2 = current_box[3] + proximity_thresh
+
+        # If next_box is close to current_box, merge them
+        if (prox_x1 < next_box[2] and prox_x2 > next_box[0] and
+            prox_y1 < next_box[3] and prox_y2 > next_box[1]):
+            current_box[0] = min(current_box[0], next_box[0])
+            current_box[1] = min(current_box[1], next_box[1])
+            current_box[2] = max(current_box[2], next_box[2])
+            current_box[3] = max(current_box[3], next_box[3])
+        else:
+            merged_boxes.append(tuple(current_box))
+            current_box = list(next_box)
+    merged_boxes.append(tuple(current_box))
+    return merged_boxes
+
 # ----------------------------------------------------------------------
 # Step 3: recognize text in each box
 # ----------------------------------------------------------------------
@@ -183,14 +220,19 @@ def pick_font_size(box, text, font_path=None, max_size=50, min_size=10):
     box_w, box_h = x2 - x1, y2 - y1
     size = max_size
     while size > min_size:
-        font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default()
-        wrapped = textwrap.wrap(text, width=max(1, int(box_w / (size * 0.55))))
+        font = ImageFont.truetype(font_path, size) if font_path else ImageFont.load_default(size=size)
+        # Estimate wrap width: for typical fonts, character width is ~0.5-0.6 of font size.
+        # For vertical text boxes, we need a more generous wrapping width.
+        # A character's width is roughly half its height (size).
+        wrap_width_chars = int(box_w / (size * 0.5))
+        wrapped = textwrap.wrap(text, width=max(2, wrap_width_chars))
+
         line_h = size * 1.15
         total_h = line_h * max(1, len(wrapped))
         if total_h <= box_h + 10:
             return font, wrapped, size
         size -= 2
-    font = ImageFont.truetype(font_path, min_size) if font_path else ImageFont.load_default()
+    font = ImageFont.truetype(font_path, min_size) if font_path else ImageFont.load_default(size=min_size)
     wrapped = textwrap.wrap(text, width=max(1, int(box_w / (min_size * 0.55))))
     return font, wrapped, min_size
 
@@ -204,7 +246,7 @@ def redraw_page(image: Image.Image, boxes, translations, font_path=None):
             continue
         x1, y1, x2, y2 = box
 
-        draw.rectangle([x1 - 2, y1 - 2, x2 + 2, y2 + 2], fill="white")
+        draw.rectangle([x1 - 4, y1 - 4, x2 + 4, y2 + 4], fill="white")
 
         font, wrapped_lines, size = pick_font_size(box, translated, font_path)
         line_h = size * 1.15
@@ -235,26 +277,30 @@ def translate_manga_page(url: str, detector: str = "easyocr", target: str = "en"
     print(f"[1/6] Downloading image from: {url}")
     image = load_image_from_url(url)
 
+    reader = easyocr.Reader(["ja", "en"], gpu=False)
     print(f"[2/6] Detecting text regions (detector={detector})")
     if detector == "bubbles":
         boxes = detect_bubbles(image)
     else: # easyocr
-        reader = easyocr.Reader(["ja", "en"], gpu=False)
         boxes = detect_boxes(image, reader)
-
-    print("[3/6] Detecting text regions")
-    boxes = detect_boxes(image, reader)
-    print(f"      -> Found {len(boxes)} candidate region(s) after filtering")
+    
+    print(f"      -> Found {len(boxes)} initial regions, merging...")
+    boxes = merge_boxes(boxes)
+    print(f"      -> Down to {len(boxes)} final region(s) after merging.")
+    print("[3/6] Recognizing text (this step is placeholder, see next)")
 
     print(f"[4/6] Recognizing text (engine={engine})")
     kept_boxes = []
-    reader = easyocr.Reader(["ja", "en"], gpu=False) # Needed for recognition
     recognized_texts = []
     for box in boxes:
         text = recognize_box(image, box, reader, engine=engine)
         if not text:
             continue
-        kept_boxes.append(box)
+        # Expand box slightly to ensure full coverage when redrawing
+        x1, y1, x2, y2 = box
+        pad = 4
+        expanded_box = (max(0, x1 - pad), max(0, y1 - pad), x2 + pad, y2 + pad)
+        kept_boxes.append(expanded_box)
         recognized_texts.append(text)
 
     print(f"[5/6] Translating {len(recognized_texts)} line(s) as a single batch "
