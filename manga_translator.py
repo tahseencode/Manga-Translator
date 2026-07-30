@@ -103,42 +103,52 @@ def detect_boxes(image: Image.Image, reader: easyocr.Reader,
     return filtered
 
 
-def merge_boxes(boxes, proximity_thresh=15):
+def merge_boxes(boxes, proximity_thresh=20):
     """
     Merges overlapping or nearby bounding boxes. This is crucial for cases
     where a single speech bubble is incorrectly detected as multiple
-    separate text regions.
+    separate text regions. It works iteratively until no more merges can be made.
     """
-    if not boxes:
+    if len(boxes) <= 1:
         return []
 
-    # sort by x-coordinate
-    boxes.sort(key=lambda b: b[0])
-    merged_boxes = []
-    
-    current_box = list(boxes[0])
+    # Sort by top-left corner (y, then x) to process in a predictable order
+    boxes.sort(key=lambda b: (b[1], b[0]))
 
-    for i in range(1, len(boxes)):
-        next_box = boxes[i]
-        # Check for overlap or proximity
-        # Expand current_box slightly to check for proximity
-        prox_x1 = current_box[0] - proximity_thresh
-        prox_y1 = current_box[1] - proximity_thresh
-        prox_x2 = current_box[2] + proximity_thresh
-        prox_y2 = current_box[3] + proximity_thresh
+    while True:
+        merged_in_pass = False
+        next_pass_boxes = []
+        used_mask = [False] * len(boxes)
 
-        # If next_box is close to current_box, merge them
-        if (prox_x1 < next_box[2] and prox_x2 > next_box[0] and
-            prox_y1 < next_box[3] and prox_y2 > next_box[1]):
-            current_box[0] = min(current_box[0], next_box[0])
-            current_box[1] = min(current_box[1], next_box[1])
-            current_box[2] = max(current_box[2], next_box[2])
-            current_box[3] = max(current_box[3], next_box[3])
-        else:
-            merged_boxes.append(tuple(current_box))
-            current_box = list(next_box)
-    merged_boxes.append(tuple(current_box))
-    return merged_boxes
+        for i in range(len(boxes)):
+            if used_mask[i]:
+                continue
+            
+            current_box = list(boxes[i])
+            
+            for j in range(i + 1, len(boxes)):
+                if used_mask[j]:
+                    continue
+                
+                other_box = boxes[j]
+                # Check for proximity
+                if (current_box[0] - proximity_thresh < other_box[2] and
+                    current_box[2] + proximity_thresh > other_box[0] and
+                    current_box[1] - proximity_thresh < other_box[3] and
+                    current_box[3] + proximity_thresh > other_box[1]):
+                    
+                    current_box[0] = min(current_box[0], other_box[0])
+                    current_box[1] = min(current_box[1], other_box[1])
+                    current_box[2] = max(current_box[2], other_box[2])
+                    current_box[3] = max(current_box[3], other_box[3])
+                    used_mask[j] = True
+                    merged_in_pass = True
+            
+            next_pass_boxes.append(tuple(current_box))
+        
+        boxes = next_pass_boxes
+        if not merged_in_pass:
+            return boxes
 
 # ----------------------------------------------------------------------
 # Step 3: recognize text in each box
@@ -233,7 +243,7 @@ def pick_font_size(box, text, font_path=None, max_size=50, min_size=10):
             return font, wrapped, size
         size -= 2
     font = ImageFont.truetype(font_path, min_size) if font_path else ImageFont.load_default(size=min_size)
-    wrapped = textwrap.wrap(text, width=max(1, int(box_w / (min_size * 0.55))))
+    wrapped = textwrap.wrap(text, width=max(2, int(box_w / (min_size * 0.5))))
     return font, wrapped, min_size
 
 
