@@ -1,0 +1,9 @@
+Flask
+requests
+Pillow
+beautifulsoup4
+easyocr
+deep-translator
+numpy
+opencv-python
+git+https://github.com/kha-white/manga-ocr.git

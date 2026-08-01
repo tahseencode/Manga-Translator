@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raw Manga Translator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-color: #10101a;
+    --surface-color: rgba(22, 33, 62, 0.6);
+    --primary-color: #1f2a47;
+    --secondary-color: #e94560;
+    --glow-color: rgba(233, 69, 96, 0.5);
+    --text-color: #e0e0e0;
+    --text-muted: #a9a9a9;
+    --border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* --- General Styles --- */
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 40px 20px;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    box-sizing: border-box;
+    overflow-x: hidden; /* Prevent horizontal scroll from blurred shapes */
+    position: relative;
+}
+
+/* --- Background Graphic Arts --- */
+body::before, body::after {
+    content: '';
+    position: fixed;
+    z-index: -1;
+    filter: blur(150px);
+    opacity: 0.15;
+    border-radius: 50%;
+}
+
+body::before {
+    width: 400px;
+    height: 400px;
+    background: var(--secondary-color);
+    top: -100px;
+    left: -100px;
+}
+
+body::after {
+    width: 500px;
+    height: 500px;
+    background: #4a00e0; /* A new purple color for contrast */
+    bottom: -150px;
+    right: -150px;
+}
+
+.container {
+    width: 100%;
+    max-width: 1200px;
+    background-color: var(--surface-color);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    border-radius: 24px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    padding: 40px;
+    border: 1px solid var(--border-color);
+}
+
+/* --- Header --- */
+header {
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    color: #ffffff;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -1px;
+}
+
+header p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-top: 8px;
+}
+
+/* --- Controls --- */
+.controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.input-group {
+    width: 100%;
+    max-width: 650px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.input-group input[type="text"] {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.input-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px var(--glow-color);
+}
+
+/* Custom File Upload */
+.file-upload-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 650px;
+    text-align: center;
+}
+
+.file-upload-wrapper input[type="file"] {
+    display: none;
+}
+
+.file-upload-label {
+    display: block;
+    padding: 24px;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.file-upload-label:hover {
+    background-color: var(--primary-color);
+    border-color: var(--secondary-color);
+}
+
+.file-upload-label svg {
+    margin-bottom: 12px;
+    color: var(--text-muted);
+    transition: color 0.2s, transform 0.2s;
+}
+
+.file-upload-label:hover svg {
+    color: var(--secondary-color);
+    transform: translateY(-2px);
+}
+
+.file-upload-label .file-upload-text {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.file-upload-label .file-upload-hint {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.separator {
+    font-weight: bold;
+    color: var(--text-muted);
+    margin: -8px 0;
+}
+
+#translate-btn {
+    background: linear-gradient(45deg, #e94560, #c62a88, #8e2de2);
+    background-size: 200% auto;
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, background-position 0.4s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    margin-top: 16px;
+}
+
+#translate-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px var(--glow-color);
+    background-position: right center;
+}
+
+#translate-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* --- Loading & Error States --- */
+.hidden { display: none !important; }
+
+#loading-indicator {
+    text-align: center;
+    padding: 40px 20px;
+    font-size: 1.1em;
+    color: var(--text-muted);
+}
+
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border-left-color: var(--secondary-color);
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#error-message {
+    background-color: rgba(233, 69, 96, 0.15);
+    color: #f8d7da;
+    border: 1px solid var(--secondary-color);
+    padding: 1rem;
+    border-radius: 10px;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+/* --- Results --- */
+#results {
+    margin-top: 2rem;
+}
+
+#results h2 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 40px;
+    color: #ffffff;
+}
+
+.page-result {
+    margin-top: 3rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--border-color);
+}
+.page-result:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.page-result h3 {
+    text-align: center;
+    margin-bottom: 24px;
+    font-size: 1.6rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.image-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 2rem;
+    perspective: 1500px; /* Add perspective to the container */
+}
+
+.image-wrapper {
+    background-color: var(--primary-color);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transform-style: preserve-3d; /* Important for 3D transforms */
+}
+
+.image-wrapper:hover {
+    transform: translateZ(40px) rotateX(5deg) rotateY(-5deg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.image-wrapper h4 {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 1.3rem;
+    color: #ffffff;
+    font-weight: 500;
+}
+.image-wrapper img {
+    max-width: 100%;
+    display: block;
+    border-radius: 8px;
+}
+
+.page-error {
+    margin-top: 1rem;
+    padding: 1.5rem;
+    background-color: rgba(233, 69, 96, 0.15);
+    border: 1px solid var(--secondary-color);
+    border-radius: 10px;
+    text-align: center;
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    .image-container {
+        grid-template-columns: 1fr;
+    }
+    header h1 {
+        font-size: 2rem;
+    }
+    .container {
+        padding: 20px;
+    }
+}
+</style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Manga Translator</h1>
+            <p>Upload a manga page or provide an image URL to translate it from Japanese to English.</p>
+        </header>
+
+        <div class="controls">
+            <div class="input-group">
+                <label for="image-url">Image URL:</label>
+                <input type="text" id="image-url" placeholder="Enter direct image URL">
+            </div>
+            <div class="separator">OR</div>
+            <div class="file-upload-wrapper">
+                <input type="file" id="image-upload" accept="image/png, image/jpeg, image/webp">
+                <label for="image-upload" class="file-upload-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.2 15c.7-1.2 1-2.5.7-3.9-.6-2.4-2.4-4.2-4.8-4.8-.4-.1-.7-.2-1.1-.2h-1.1c0-2.9-2.4-5.2-5.3-5.2S4.6 3.2 4.6 6.1H3.5c-1.4 0-2.7.7-3.4 1.9-.7 1.2-1 2.5-.7 3.9.6 2.4 2.4 4.2 4.8 4.8.4.1.7.2 1.1.2h1.1c0 2.9 2.4 5.2 5.3 5.2s5.3-2.3 5.3-5.2h1.1c1.4 0 2.7-.7 3.4-1.9z"></path><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line></svg>
+                    <span class="file-upload-text">Click to upload or drag & drop</span>
+                    <span class="file-upload-hint">PNG, JPG, WEBP</span>
+                </label>
+            </div>
+            <button id="translate-btn">Translate</button>
+        </div>
+
+        <div id="loading-indicator" class="hidden">
+            <div class="spinner"></div>
+            <p>Translating... This may take a moment, especially the first time.</p>
+        </div>
+
+        <div id="error-message" class="hidden"></div>
+
+        <div id="results" class="hidden">
+            <h2>Results</h2>
+            <div id="results-content">
+                <!-- This is where the dynamic page results will be injected -->
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const translateBtn = document.getElementById('translate-btn');
+            const imageUrlInput = document.getElementById('image-url');
+            const imageUploadInput = document.getElementById('image-upload');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const resultsDiv = document.getElementById('results');
+            const errorMessageDiv = document.getElementById('error-message');
+
+            const resultsContent = document.getElementById('results-content');
+            const fileUploadText = document.querySelector('.file-upload-label .file-upload-text');
+
+            imageUploadInput.addEventListener('change', () => {
+                if (imageUploadInput.files.length > 0) {
+                    fileUploadText.textContent = imageUploadInput.files[0].name;
+                } else {
+                    fileUploadText.textContent = 'Click to upload a file';
+                }
+            });
+
+            translateBtn.addEventListener('click', async () => {
+                const imageUrl = imageUrlInput.value.trim();
+                const imageFile = imageUploadInput.files[0];
+
+                if (!imageUrl && !imageFile) {
+                    showError('Please provide an image URL or upload a file.');
+                    return;
+                }
+
+                // Reset UI
+                hideError();
+                resultsContent.innerHTML = '';
+                resultsDiv.classList.add('hidden');
+                loadingIndicator.classList.remove('hidden');
+                loadingIndicator.querySelector('p').textContent = 'Starting translation...';
+                translateBtn.disabled = true;
+
+                const formData = new FormData();
+                if (imageFile) {
+                    formData.append('image_file', imageFile);
+
+                } else {
+                    formData.append('image_url', imageUrl);
+                }
+
+                try {
+                    const response = await fetch('/translate', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    let totalPages = 0;
+
+                    resultsDiv.classList.remove('hidden');
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) {
+                            break;
+                        }
+
+                        buffer += decoder.decode(value, { stream: true });
+                        let boundary = buffer.indexOf('\n\n');
+
+                        while (boundary !== -1) {
+                            const message = buffer.substring(0, boundary);
+                            buffer = buffer.substring(boundary + 2);
+
+                            let event = 'message';
+                            let data = '';
+
+                            message.split('\n').forEach(line => {
+                                if (line.startsWith('event:')) {
+                                    event = line.substring(6).trim();
+                                } else if (line.startsWith('data:')) {
+                                    data += line.substring(5).trim();
+                                }
+                            });
+
+                            if (data) {
+                                const parsedData = JSON.parse(data);
+                                if (event === 'init') {
+                                    totalPages = parsedData.total_pages;
+                                    document.querySelector('#results h2').textContent = `Results (${totalPages} Page${totalPages > 1 ? 's' : ''})`;
+                                    loadingIndicator.querySelector('p').textContent = `Translating page 1 of ${totalPages}...`;
+                                } else if (event === 'page_result') {
+                                    appendPageResult(parsedData, totalPages);
+                                    const nextPageIndex = parsedData.page_index + 2;
+                                    if (nextPageIndex <= totalPages) {
+                                        loadingIndicator.querySelector('p').textContent = `Translating page ${nextPageIndex} of ${totalPages}...`;
+                                    }
+                                } else if (event === 'error') {
+                                    showError(parsedData.error);
+                                    break; // Stop processing on fatal error
+                                }
+                            }
+                            boundary = buffer.indexOf('\n\n');
+                        }
+                    }
+
+                } catch (error) {
+                    showError(`Translation failed: ${error.message}`);
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                    translateBtn.disabled = false;
+                }
+            });
+
+            function appendPageResult(pageData, totalPages) {
+                const pageElement = document.createElement('div');
+                pageElement.className = 'page-result';
+                pageElement.id = `page-result-${pageData.page_index}`;
+
+                const pageIndex = pageData.page_index + 1;
+
+                // Handle pages that failed to translate
+                if (pageData.error) {
+                    pageElement.classList.add('page-error');
+                    pageElement.innerHTML = `
+                        <h3>Page ${pageIndex}</h3>
+                        <p><strong>Failed to translate this page:</strong> ${escapeHtml(pageData.error)}</p>
+                        <p>Source: <a href="${pageData.source_image_url}" target="_blank" rel="noopener noreferrer">${escapeHtml(pageData.source_image_url)}</a></p>
+                    `;
+                    resultsContent.appendChild(pageElement);
+                    return;
+                }
+
+                // Determine the original image source
+                const imageFile = imageUploadInput.files[0];
+                let originalSrc = pageData.source_image_url;
+                if (!originalSrc && imageFile && totalPages === 1) {
+                    originalSrc = URL.createObjectURL(imageFile);
+                }
+
+                pageElement.innerHTML = `
+                    <h3>Page ${pageIndex} of ${totalPages}</h3>
+                    <div class="image-container">
+                        <div class="image-wrapper">
+                            <h4>Original</h4>
+                            <div class="original-preview">
+                                <img src="${originalSrc}" alt="Original Manga Page ${pageIndex}">
+                            </div>
+                        </div>
+                        <div class="image-wrapper">
+                            <h4>Translated</h4>
+                            <img src="${pageData.translated_image}" alt="Translated Manga Page ${pageIndex}">
+                        </div>
+                    </div>
+                `;
+                resultsContent.appendChild(pageElement);
+            }
+
+            function escapeHtml(unsafe) {
+                if (!unsafe) return '';
+                return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+            }
+
+            function showError(message) {
+                errorMessageDiv.textContent = message;
+                errorMessageDiv.classList.remove('hidden');
+            }
+
+            function hideError() {
+                errorMessageDiv.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

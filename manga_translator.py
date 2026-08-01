@@ -27,7 +27,7 @@ except ImportError:
     _HAS_MANGA_OCR = False
 
 _mocr_singleton = None
-
+_easyocr_singleton = None
 
 def get_manga_ocr():
     global _mocr_singleton
@@ -36,6 +36,17 @@ def get_manga_ocr():
         _mocr_singleton = MangaOcr()
     return _mocr_singleton
 
+def get_easyocr_reader():
+    global _easyocr_singleton
+    if _easyocr_singleton is None:
+        print("      loading easyocr models (first call only)...")
+        _easyocr_singleton = easyocr.Reader(["ja", "en"], gpu=False)
+    return _easyocr_singleton
+
+def initialize_ocr_models():
+    get_easyocr_reader()
+    if _HAS_MANGA_OCR:
+        get_manga_ocr()
 
 # ----------------------------------------------------------------------
 # Step 1: fetch the image
@@ -301,22 +312,28 @@ def redraw_page(image: Image.Image, boxes, translations, font_path=None):
 # ----------------------------------------------------------------------
 # Main pipeline
 # ----------------------------------------------------------------------
-def translate_manga_page(url: str, detector: str = "easyocr", target: str = "en",
-                          out_path: str = "translated.png", font_path=None,
-                          engine: str = "manga-ocr", page_num=None, total_pages=None):
+def translate_manga_page(image_source, detector: str = "easyocr", target: str = "en",
+                          font_path=None, engine: str = "manga-ocr", 
+                          page_num=None, total_pages=None):
     page_prefix = ""
     if page_num is not None and total_pages is not None:
         page_prefix = f"[Page {page_num}/{total_pages}] "
 
     if engine == "manga-ocr" and not _HAS_MANGA_OCR:
-        print(f"{page_prefix}      [!] manga-ocr not installed, falling back to easyocr recognizer.\n"
-              "          Install with: pip install manga-ocr", file=sys.stderr)
+        print(f"{page_prefix}      [!] manga-ocr not installed, falling back to easyocr recognizer.", file=sys.stderr)
         engine = "easyocr"
 
-    print(f"{page_prefix}[1/6] Downloading image from: {url}")
-    image = load_image_from_url(url)
+    print(f"{page_prefix}[1/6] Loading image...")
+    if isinstance(image_source, str): # It's a URL
+        image = load_image_from_url(image_source)
+    elif isinstance(image_source, bytes): # It's raw image data
+        image = Image.open(io.BytesIO(image_source)).convert("RGB")
+    elif isinstance(image_source, Image.Image): # Already a PIL image
+        image = image_source
+    else:
+        raise TypeError("image_source must be a URL (str), image data (bytes), or PIL Image object")
 
-    reader = easyocr.Reader(["ja", "en"], gpu=False)
+    reader = get_easyocr_reader()
     print(f"{page_prefix}[2/6] Detecting text regions (detector={detector})")
     if detector == "bubbles":
         boxes = detect_bubbles(image)
@@ -348,91 +365,8 @@ def translate_manga_page(url: str, detector: str = "easyocr", target: str = "en"
     for original, translated in zip(recognized_texts, translations):
         print(f"{page_prefix}      JP: {original!r:35s}  ->  {target.upper()}: {translated!r}")
 
-    print(f"{page_prefix}[6/6] Rendering translated page -> {out_path}")
+    print(f"{page_prefix}[6/6] Rendering translated page...")
     result_img = redraw_page(image, kept_boxes, translations, font_path=font_path)
-    result_img.save(out_path)
     print(f"{page_prefix}Done.")
-    return kept_boxes, translations, result_img
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Translate a manga page or chapter from a URL.")
-    parser.add_argument("url", help="URL of the manga page image or chapter page")
-    args = parser.parse_args()
-
-    # --- Hardcoded settings ---
-    # These were previously command-line arguments. For simplicity, they are
-    # now set to their most common defaults here.
-    detector = "easyocr"
-    target_lang = "en"
-    output_dir = "translated_chapter"
-    engine = "manga-ocr"
-    
-    # --- Set a default font ---
-    # Looks for 'animeace2.ttf' in the same directory as the script.
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    font_path = os.path.join(script_dir, "animeace2.ttf")
-    if not os.path.exists(font_path):
-        font_path = None # Fallback to system default if not found
-
-    # --- Auto-detect if URL is a single image or a chapter page ---
-    try:
-        # First, try to treat the URL as a single image page.
-        # The `load_image_from_url` function will raise a ValueError if the
-        # content type is not an image, which we use to switch to chapter mode.
-        print(f"--- Translating Single Page from URL: {args.url} ---")
-        output_filename = "translated.png"
-        translate_manga_page(args.url, detector=detector, target=target_lang,
-                             out_path=output_filename, font_path=font_path,
-                             engine=engine)
-
-    except ValueError as e:
-        # The initial check failed, so it's not a direct image link.
-        # Let's assume it's a chapter page and try to scrape it for images.
-        print(f"  [!] URL is not a direct image link. Assuming it's a chapter page.", file=sys.stderr)
-        print(f"--- Translating Chapter from URL: {args.url} ---")
-        
-        image_urls = find_image_urls_on_page(args.url)
-        if not image_urls:
-            sys.exit("  [!] No image URLs found on the page. Exiting.")
-        
-        print(f"      -> Found {len(image_urls)} images to translate.")
-        
-        os.makedirs(output_dir, exist_ok=True)
-
-        def translate_page_task(i, img_url):
-            output_filename = os.path.join(output_dir, f"page_{i+1:02d}.png")
-            try:
-                translate_manga_page(
-                    img_url,
-                    detector=detector,
-                    target=target_lang,
-                    out_path=output_filename,
-                    font_path=font_path,
-                    engine=engine,
-                    page_num=i + 1,
-                    total_pages=len(image_urls)
-                )
-                return f"[Page {i+1}/{len(image_urls)}] Translation successful."
-            except Exception as page_e:
-                # Making this a bit more readable
-                err_msg = str(page_e).replace('\n', ' ')
-                return (f"[Page {i+1}/{len(image_urls)}] FAILED for {img_url}. "
-                        f"Reason: {err_msg}")
-
-        # Use a thread pool to translate pages in parallel
-        # The number of workers can be tuned, but the default is usually reasonable.
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            future_to_url = {
-                executor.submit(translate_page_task, i, url): url
-                for i, url in enumerate(image_urls)
-            }
-            for future in concurrent.futures.as_completed(future_to_url):
-                result_message = future.result()
-                print(result_message, file=sys.stderr if "FAILED" in result_message else sys.stdout)
-
-        print("\n--- Chapter Translation Complete ---")
-
-    except Exception as e:
-        print(f"  [!!!] An unexpected error occurred: {e}", file=sys.stderr)
-        sys.exit(1)
+    # Return the boxes and text for the interactive preview
+    return kept_boxes, recognized_texts, translations, result_img
