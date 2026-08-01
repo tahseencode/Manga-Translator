@@ -2,8 +2,8 @@
 
 # Explicitly install CPU-only torch and torchvision to control bundle size
 # Pin to older, smaller versions compatible with Python 3.9
-torch==1.13.1
-torchvision==0.14.1
+torch==2.2.0
+torchvision==0.17.0
 
 # Core application and web framework
 Flask
