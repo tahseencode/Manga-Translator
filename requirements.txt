@@ -1,8 +1,9 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
 # Explicitly install CPU-only torch and torchvision to control bundle size
-torch
-torchvision
+# Pin to older, smaller versions compatible with Python 3.9
+torch==1.13.1
+torchvision==0.14.1
 
 # Core application and web framework
 Flask
