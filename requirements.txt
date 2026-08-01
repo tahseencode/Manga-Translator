@@ -5,5 +5,5 @@ beautifulsoup4
 easyocr
 deep-translator
 numpy
-opencv-python
-git+https://github.com/kha-white/manga-ocr.git
+opencv-python-headless
+manga-ocr @ git+https://github.com/kha-white/manga-ocr.git

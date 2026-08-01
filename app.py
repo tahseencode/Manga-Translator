@@ -4,7 +4,6 @@ import os
 import sys
 import json
 from flask import Flask, request, render_template, Response
-from waitress import serve
 from manga_translator import translate_manga_page, initialize_ocr_models, find_image_urls_on_page
 
 # Let Flask handle the static folder automatically.
@@ -120,8 +119,3 @@ def translate_endpoint():
 # This part runs when the module is imported.
 # It pre-loads the heavy models for better performance on serverless platforms like Vercel.
 initialize_ocr_models()
-
-if __name__ == '__main__':
-    # This block is for local execution only. Vercel will not run this.
-    print("--- Running Local Production Server with Waitress ---")
-    serve(app, host='0.0.0.0', port=5000)
