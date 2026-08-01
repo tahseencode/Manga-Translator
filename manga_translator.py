@@ -8,6 +8,7 @@ import sys
 import textwrap
 import time
 from urllib.parse import urljoin
+import concurrent.futures
 
 import numpy as np
 import requests
@@ -302,28 +303,32 @@ def redraw_page(image: Image.Image, boxes, translations, font_path=None):
 # ----------------------------------------------------------------------
 def translate_manga_page(url: str, detector: str = "easyocr", target: str = "en",
                           out_path: str = "translated.png", font_path=None,
-                          engine: str = "manga-ocr"):
+                          engine: str = "manga-ocr", page_num=None, total_pages=None):
+    page_prefix = ""
+    if page_num is not None and total_pages is not None:
+        page_prefix = f"[Page {page_num}/{total_pages}] "
+
     if engine == "manga-ocr" and not _HAS_MANGA_OCR:
-        print("      [!] manga-ocr not installed, falling back to easyocr recognizer.\n"
+        print(f"{page_prefix}      [!] manga-ocr not installed, falling back to easyocr recognizer.\n"
               "          Install with: pip install manga-ocr", file=sys.stderr)
         engine = "easyocr"
 
-    print(f"[1/6] Downloading image from: {url}")
+    print(f"{page_prefix}[1/6] Downloading image from: {url}")
     image = load_image_from_url(url)
 
     reader = easyocr.Reader(["ja", "en"], gpu=False)
-    print(f"[2/6] Detecting text regions (detector={detector})")
+    print(f"{page_prefix}[2/6] Detecting text regions (detector={detector})")
     if detector == "bubbles":
         boxes = detect_bubbles(image)
     else: # easyocr
         boxes = detect_boxes(image, reader)
     
-    print(f"      -> Found {len(boxes)} initial regions, merging...")
+    print(f"{page_prefix}      -> Found {len(boxes)} initial regions, merging...")
     boxes = merge_boxes(boxes)
-    print(f"      -> Down to {len(boxes)} final region(s) after merging.")
-    print("[3/6] Recognizing text (this step is placeholder, see next)")
+    print(f"{page_prefix}      -> Down to {len(boxes)} final region(s) after merging.")
+    print(f"{page_prefix}[3/6] Recognizing text (this step is placeholder, see next)")
 
-    print(f"[4/6] Recognizing text (engine={engine})")
+    print(f"{page_prefix}[4/6] Recognizing text (engine={engine})")
     kept_boxes = []
     recognized_texts = []
     for box in boxes:
@@ -337,16 +342,16 @@ def translate_manga_page(url: str, detector: str = "easyocr", target: str = "en"
         kept_boxes.append(expanded_box)
         recognized_texts.append(text)
 
-    print(f"[5/6] Translating {len(recognized_texts)} line(s) as a single batch "
+    print(f"{page_prefix}[5/6] Translating {len(recognized_texts)} line(s) as a single batch "
           f"(more reliable than one request per line)")
     translations = translate_all(recognized_texts, target=target)
     for original, translated in zip(recognized_texts, translations):
-        print(f"      JP: {original!r:35s}  ->  {target.upper()}: {translated!r}")
+        print(f"{page_prefix}      JP: {original!r:35s}  ->  {target.upper()}: {translated!r}")
 
-    print(f"[6/6] Rendering translated page -> {out_path}")
+    print(f"{page_prefix}[6/6] Rendering translated page -> {out_path}")
     result_img = redraw_page(image, kept_boxes, translations, font_path=font_path)
     result_img.save(out_path)
-    print("Done.")
+    print(f"{page_prefix}Done.")
     return kept_boxes, translations, result_img
 
 
@@ -394,16 +399,38 @@ if __name__ == "__main__":
         print(f"      -> Found {len(image_urls)} images to translate.")
         
         os.makedirs(output_dir, exist_ok=True)
-        
-        for i, img_url in enumerate(image_urls):
-            print(f"\n--- Translating Page {i+1}/{len(image_urls)} ---")
+
+        def translate_page_task(i, img_url):
             output_filename = os.path.join(output_dir, f"page_{i+1:02d}.png")
             try:
-                translate_manga_page(img_url, detector=detector, target=target_lang,
-                                     out_path=output_filename, font_path=font_path,
-                                     engine=engine)
+                translate_manga_page(
+                    img_url,
+                    detector=detector,
+                    target=target_lang,
+                    out_path=output_filename,
+                    font_path=font_path,
+                    engine=engine,
+                    page_num=i + 1,
+                    total_pages=len(image_urls)
+                )
+                return f"[Page {i+1}/{len(image_urls)}] Translation successful."
             except Exception as page_e:
-                print(f"  [!!!] Failed to translate page {i+1} ({img_url}): {page_e}", file=sys.stderr)
+                # Making this a bit more readable
+                err_msg = str(page_e).replace('\n', ' ')
+                return (f"[Page {i+1}/{len(image_urls)}] FAILED for {img_url}. "
+                        f"Reason: {err_msg}")
+
+        # Use a thread pool to translate pages in parallel
+        # The number of workers can be tuned, but the default is usually reasonable.
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            future_to_url = {
+                executor.submit(translate_page_task, i, url): url
+                for i, url in enumerate(image_urls)
+            }
+            for future in concurrent.futures.as_completed(future_to_url):
+                result_message = future.result()
+                print(result_message, file=sys.stderr if "FAILED" in result_message else sys.stdout)
+
         print("\n--- Chapter Translation Complete ---")
 
     except Exception as e:
