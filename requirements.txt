@@ -1,5 +1,9 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
+# Explicitly install CPU-only torch and torchvision to control bundle size
+torch
+torchvision
+
 Flask
 requests
 Pillow
