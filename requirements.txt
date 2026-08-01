@@ -4,12 +4,16 @@
 torch
 torchvision
 
+# Core application and web framework
 Flask
 requests
-Pillow
 beautifulsoup4
+
+# Translation and OCR libraries
 easyocr
 deep-translator
+
+# Image and numerical processing
+Pillow
 numpy
 opencv-python-headless
-manga-ocr @ git+https://github.com/kha-white/manga-ocr.git
