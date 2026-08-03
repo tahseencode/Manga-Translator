@@ -279,44 +279,72 @@ header p {
     font-size: 1.6rem;
     color: var(--text-muted);
     font-weight: 500;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
 }
 
-.image-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
-    margin-bottom: 2rem;
-    perspective: 1500px; /* Add perspective to the container */
-}
-
-.image-wrapper {
-    background-color: var(--primary-color);
+.download-btn {
+    background: var(--surface-color);
+    color: var(--text-muted);
     border: 1px solid var(--border-color);
-    padding: 16px;
-    border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-    transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    transform-style: preserve-3d; /* Important for 3D transforms */
-}
-
-.image-wrapper:hover {
-    transform: translateZ(40px) rotateX(5deg) rotateY(-5deg);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-}
-
-.image-wrapper h4 {
-    text-align: center;
-    margin-top: 0;
-    margin-bottom: 16px;
-    font-size: 1.3rem;
-    color: #ffffff;
-    font-weight: 500;
-}
-.image-wrapper img {
-    max-width: 100%;
-    display: block;
+    padding: 8px 16px;
     border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.2s;
 }
+
+.download-btn:hover {
+    background-color: var(--primary-color);
+    color: var(--text-color);
+    transform: translateY(-1px);
+}
+.interactive-image-container {
+    position: relative;
+    max-width: 100%;
+    margin: 0 auto;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.interactive-image-container img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.translation-bubble {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.translation-bubble:hover {
+    background-color: white;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.translation-bubble span {
+    color: black;
+    font-family: 'Arial', sans-serif; /* Using a more standard font for readability */
+    font-weight: bold;
+    font-size: 16px; /* Will be dynamically adjusted */
+}
+
 
 .page-error {
     margin-top: 1rem;
@@ -326,6 +354,95 @@ header p {
     border-radius: 10px;
     text-align: center;
 }
+
+/* --- Editor Modal --- */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--primary-color);
+    padding: 24px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-color);
+}
+
+.modal-content h4 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    color: #ffffff;
+    font-size: 1.4rem;
+}
+
+.modal-content .original-text {
+    background-color: var(--surface-color);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-style: italic;
+    color: var(--text-muted);
+    border: 1px solid var(--border-color);
+}
+
+.modal-content textarea {
+    width: 100%;
+    height: 120px;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-size: 1rem;
+    resize: vertical;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.modal-actions button {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.modal-actions .save-btn {
+    background-color: var(--secondary-color);
+    color: white;
+}
+.modal-actions .save-btn:hover {
+    background-color: #d83a54;
+    transform: translateY(-1px);
+}
+
+.modal-actions .cancel-btn {
+    background-color: var(--surface-color);
+    color: var(--text-muted);
+}
+.modal-actions .cancel-btn:hover {
+    background-color: var(--primary-color);
+}
+
 
 /* --- Responsive Design --- */
 @media (max-width: 768px) {
@@ -378,6 +495,17 @@ header p {
                 <!-- This is where the dynamic page results will be injected -->
             </div>
         </div>
+         <div id="editor-modal" class="modal-backdrop hidden">
+            <div class="modal-content">
+                <h4>Edit Translation</h4>
+                <div class="original-text"></div>
+                <textarea id="editor-textarea"></textarea>
+                <div class="modal-actions">
+                    <button id="cancel-edit-btn" class="cancel-btn">Cancel</button>
+                    <button id="save-edit-btn" class="save-btn">Save</button>
+                </div>
+            </div>
+        </div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -387,9 +515,16 @@ header p {
             const loadingIndicator = document.getElementById('loading-indicator');
             const resultsDiv = document.getElementById('results');
             const errorMessageDiv = document.getElementById('error-message');
-
             const resultsContent = document.getElementById('results-content');
             const fileUploadText = document.querySelector('.file-upload-label .file-upload-text');
+
+            const editorModal = document.getElementById('editor-modal');
+            const editorTextarea = document.getElementById('editor-textarea');
+            const saveEditBtn = document.getElementById('save-edit-btn');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const originalTextDiv = editorModal.querySelector('.original-text');
+
+            let activeBubble = null;
 
             imageUploadInput.addEventListener('change', () => {
                 if (imageUploadInput.files.length > 0) {
@@ -467,20 +602,25 @@ header p {
                             });
 
                             if (data) {
-                                const parsedData = JSON.parse(data);
-                                if (event === 'init') {
-                                    totalPages = parsedData.total_pages;
-                                    document.querySelector('#results h2').textContent = `Results (${totalPages} Page${totalPages > 1 ? 's' : ''})`;
-                                    loadingIndicator.querySelector('p').textContent = `Translating page 1 of ${totalPages}...`;
-                                } else if (event === 'page_result') {
-                                    appendPageResult(parsedData, totalPages);
-                                    const nextPageIndex = parsedData.page_index + 2;
-                                    if (nextPageIndex <= totalPages) {
-                                        loadingIndicator.querySelector('p').textContent = `Translating page ${nextPageIndex} of ${totalPages}...`;
+                                try {
+                                    const parsedData = JSON.parse(data);
+                                    if (event === 'init') {
+                                        totalPages = parsedData.total_pages;
+                                        document.querySelector('#results h2').textContent = `Results (${totalPages} Page${totalPages > 1 ? 's' : ''})`;
+                                        loadingIndicator.querySelector('p').textContent = `Translating page 1 of ${totalPages}...`;
+                                    } else if (event === 'page_result') {
+                                        appendPageResult(parsedData, totalPages);
+                                        const nextPageIndex = parsedData.page_index + 2;
+                                        if (nextPageIndex <= totalPages) {
+                                            loadingIndicator.querySelector('p').textContent = `Translating page ${nextPageIndex} of ${totalPages}...`;
+                                        }
+                                    } else if (event === 'error') {
+                                        showError(parsedData.error);
+                                        break; // Stop processing on fatal error
                                     }
-                                } else if (event === 'error') {
-                                    showError(parsedData.error);
-                                    break; // Stop processing on fatal error
+                                } catch (e) {
+                                    console.error("Failed to parse JSON data: ", data, e);
+                                    // Optionally show an error to the user here
                                 }
                             }
                             boundary = buffer.indexOf('\n\n');
@@ -499,10 +639,8 @@ header p {
                 const pageElement = document.createElement('div');
                 pageElement.className = 'page-result';
                 pageElement.id = `page-result-${pageData.page_index}`;
-
                 const pageIndex = pageData.page_index + 1;
 
-                // Handle pages that failed to translate
                 if (pageData.error) {
                     pageElement.classList.add('page-error');
                     pageElement.innerHTML = `
@@ -513,31 +651,79 @@ header p {
                     resultsContent.appendChild(pageElement);
                     return;
                 }
+                
+                const originalSrc = URL.createObjectURL(imageUploadInput.files[0]);
 
-                // Determine the original image source
-                const imageFile = imageUploadInput.files[0];
-                let originalSrc = pageData.source_image_url;
-                if (!originalSrc && imageFile && totalPages === 1) {
-                    originalSrc = URL.createObjectURL(imageFile);
-                }
-
-                pageElement.innerHTML = `
-                    <h3>Page ${pageIndex} of ${totalPages}</h3>
-                    <div class="image-container">
-                        <div class="image-wrapper">
-                            <h4>Original</h4>
-                            <div class="original-preview">
-                                <img src="${originalSrc}" alt="Original Manga Page ${pageIndex}">
-                            </div>
-                        </div>
-                        <div class="image-wrapper">
-                            <h4>Translated</h4>
-                            <img src="${pageData.translated_image}" alt="Translated Manga Page ${pageIndex}">
-                        </div>
+                 pageElement.innerHTML = `
+                    <h3>
+                        <span>Page ${pageIndex} of ${totalPages}</span>
+                        <button class="download-btn" data-page-index="${pageData.page_index}">Download</button>
+                    </h3>
+                    <div class="interactive-image-container">
+                        <img src="${pageData.translated_image}" alt="Translated Manga Page ${pageIndex}" id="translated-image-${pageData.page_index}">
+                        <!-- Bubbles will be injected here -->
                     </div>
                 `;
                 resultsContent.appendChild(pageElement);
+                
+                const imageContainer = pageElement.querySelector('.interactive-image-container');
+                const image = pageElement.querySelector('img');
+                const downloadBtn = pageElement.querySelector('.download-btn');
+
+                downloadBtn.addEventListener('click', () => {
+                    const link = document.createElement('a');
+                    link.href = pageData.translated_image;
+                    link.download = `translated_page_${pageIndex}.png`;
+                    link.click();
+                });
+
+
+                image.onload = () => {
+                    const scale = image.width / image.naturalWidth;
+                    pageData.translation_data.forEach((item, index) => {
+                        const bubble = document.createElement('div');
+                        bubble.className = 'translation-bubble';
+                        bubble.dataset.index = index;
+                        bubble.dataset.original = item.original;
+
+                        const span = document.createElement('span');
+                        span.textContent = item.translation;
+                        bubble.appendChild(span);
+
+                        const box = item.box;
+                        const w = box[2] - box[0];
+                        const h = box[3] - box[1];
+
+                        bubble.style.left = `${box[0] * scale}px`;
+                        bubble.style.top = `${box[1] * scale}px`;
+                        bubble.style.width = `${w * scale}px`;
+                        bubble.style.height = `${h * scale}px`;
+                        
+                        adjustFontSize(span, bubble.offsetWidth, bubble.offsetHeight);
+                        
+                        bubble.addEventListener('click', () => {
+                            activeBubble = bubble;
+                            originalTextDiv.textContent = `Original: ${item.original}`;
+                            editorTextarea.value = span.textContent;
+                            editorModal.classList.remove('hidden');
+                            editorTextarea.focus();
+                        });
+
+                        imageContainer.appendChild(bubble);
+                    });
+                }
             }
+            
+            function adjustFontSize(span, bubbleWidth, bubbleHeight) {
+                let fontSize = 16; // Starting font size
+                span.style.fontSize = fontSize + 'px';
+
+                while ((span.scrollWidth > bubbleWidth || span.scrollHeight > bubbleHeight) && fontSize > 6) {
+                    fontSize--;
+                    span.style.fontSize = fontSize + 'px';
+                }
+            }
+
 
             function escapeHtml(unsafe) {
                 if (!unsafe) return '';
@@ -549,10 +735,10 @@ header p {
                 errorMessageDiv.classList.remove('hidden');
             }
 
-            function hideError() {
-                errorMessageDiv.classList.add('hidden');
-            }
-        });
-    </script>
-</body>
-</html>
+.page-result h3 {
+    text-align: center;
+    margin-bottom: 24px;
+    font-size: 1.6rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
