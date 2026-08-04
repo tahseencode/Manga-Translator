@@ -1,5 +1,6 @@
 # Made by Tahseen
 import base64
+import gc
 import io
 import os
 import sys
@@ -63,6 +64,9 @@ def translate_endpoint():
                 page_result.update(_encode_image_and_data(boxes, original_texts, translations, result_img))
                 yield f"event: page_result\ndata: {json.dumps(page_result)}\n\n"
 
+                del boxes, original_texts, translations, result_img
+                gc.collect()
+
             # Case 2: URL provided
             elif source_url:
                 try:
@@ -75,6 +79,9 @@ def translate_endpoint():
                     }
                     page_result.update(_encode_image_and_data(boxes, original_texts, translations, result_img))
                     yield f"event: page_result\ndata: {json.dumps(page_result)}\n\n"
+
+                    del boxes, original_texts, translations, result_img
+                    gc.collect()
 
                 except ValueError as e:
                     # If loading the URL as an image fails, assume it's a chapter page and scrape it.
@@ -100,6 +107,16 @@ def translate_endpoint():
                                 page_result["error"] = f"Failed to translate page. Reason: {str(page_e)}"
                             
                             yield f"event: page_result\ndata: {json.dumps(page_result)}\n\n"
+
+                            # Free large per-page objects immediately instead of
+                            # waiting for lazy GC. Long streaming requests over
+                            # many pages otherwise accumulate memory until the
+                            # host's container OOM-kills the whole process.
+                            for _name in ("boxes", "original_texts", "translations",
+                                          "result_img", "success_data"):
+                                if _name in locals():
+                                    del locals()[_name]
+                            gc.collect()
                     else:
                         raise e # Re-raise other ValueErrors
             else:
