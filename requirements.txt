@@ -18,3 +18,4 @@ deep-translator
 Pillow
 numpy
 opencv-python-headless
+gunicorn

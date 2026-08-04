@@ -1,3 +1,4 @@
+# Made by Tahseen
 import base64
 import io
 import os
@@ -115,7 +116,3 @@ def translate_endpoint():
 
     # Pass the extracted data into the generator when creating the response.
     return Response(generate_stream(image_file, source_url_from_form), mimetype='text/event-stream')
-
-# This part runs when the module is imported.
-# It pre-loads the heavy models for better performance on serverless platforms like Vercel.
-initialize_ocr_models()

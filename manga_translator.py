@@ -5,6 +5,13 @@ import argparse
 import io
 import os
 import sys
+
+# For serverless environments, we need to ensure models are downloaded to a writable directory.
+# /tmp is a standard writable directory on platforms like Vercel.
+# Set TORCH_HOME to use /tmp for model caching from torch.hub (used by manga-ocr)
+# This must be set BEFORE torch or manga_ocr are imported or used.
+os.environ['TORCH_HOME'] = '/tmp/torch_cache'
+
 import textwrap
 import time
 from urllib.parse import urljoin
@@ -40,7 +47,10 @@ def get_easyocr_reader():
     global _easyocr_singleton
     if _easyocr_singleton is None:
         print("      loading easyocr models (first call only)...")
-        _easyocr_singleton = easyocr.Reader(["ja", "en"], gpu=False)
+        # For serverless environments, models must be downloaded to a writable path.
+        # /tmp is a standard writable directory on most platforms.
+        model_dir = '/tmp/easyocr_models/'
+        _easyocr_singleton = easyocr.Reader(["ja", "en"], gpu=False, model_storage_directory=model_dir)
     return _easyocr_singleton
 
 def initialize_ocr_models():
