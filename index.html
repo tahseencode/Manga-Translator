@@ -102,7 +102,7 @@ header {
 }
 
 header h1 {
-    font-size: 2.5rem;
+    font-size: 2.25rem;
     margin: 0;
     font-weight: 700;
     letter-spacing: -1px;
@@ -115,7 +115,7 @@ header h1 {
 
 header p {
     color: var(--text-muted);
-    font-size: 1.1rem;
+    font-size: 1rem;
     margin-top: 8px;
 }
 
@@ -148,7 +148,7 @@ header p {
     box-sizing: border-box;
     background-color: var(--primary-color);
     color: var(--text-color);
-    font-size: 1rem;
+    font-size: 0.9rem;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -202,7 +202,7 @@ header p {
 }
 
 .file-upload-label .file-upload-hint {
-    font-size: 0.9rem;
+    font-size: 0.81rem;
     color: var(--text-muted);
     margin-top: 4px;
 }
@@ -220,7 +220,7 @@ header p {
     border: none;
     padding: 14px 32px;
     border-radius: 10px;
-    font-size: 1.1rem;
+    font-size: 0.99rem;
     font-weight: bold;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -247,15 +247,67 @@ header p {
     box-shadow: none;
 }
 
+/* --- Features Section --- */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    margin-top: 48px;
+    margin-bottom: 48px;
+}
+
+.feature-item {
+    background: var(--primary-color);
+    padding: 24px;
+    border-radius: 16px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.feature-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2), 0 0 15px -5px var(--glow-color);
+}
+
+.feature-item svg {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 16px;
+    color: var(--secondary-color);
+    stroke-width: 1.5;
+}
+
+.feature-item h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.2rem;
+    color: #fff;
+}
+
+.feature-item p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+}
+
+
 /* --- Loading & Error States --- */
 .hidden { display: none !important; }
 
 #loading-indicator {
     text-align: center;
     padding: 40px 20px;
-    font-size: 1.1em;
+    font-size: 0.99em;
     color: var(--text-muted);
 }
+#loading-indicator p {
+    animation: pulse 2s infinite ease-in-out;
+}
+@keyframes pulse {
+    50% { opacity: 0.7; }
+}
+
 
 .spinner {
     border: 4px solid rgba(255, 255, 255, 0.2);
@@ -289,7 +341,7 @@ header p {
 
 #results h2 {
     text-align: center;
-    font-size: 2rem;
+    font-size: 1.8rem;
     margin-bottom: 40px;
     color: #ffffff;
 }
@@ -308,7 +360,7 @@ header p {
 .page-result h3 {
     text-align: center;
     margin-bottom: 24px;
-    font-size: 1.6rem;
+    font-size: 1.44rem;
     color: var(--text-muted);
     font-weight: 500;
 }
@@ -356,7 +408,7 @@ header p {
     text-align: center;
     margin-top: 0;
     margin-bottom: 16px;
-    font-size: 1.3rem;
+    font-size: 1.17rem;
     color: #ffffff;
     font-weight: 500;
 }
@@ -381,7 +433,7 @@ header p {
         grid-template-columns: 1fr;
     }
     header h1 {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
     .container {
         padding: 20px;
@@ -393,7 +445,7 @@ header p {
     <div class="container">
         <header>
             <h1>AI Manga Translator</h1>
-            <p>Upload a manga page or provide an image URL to translate it from Japanese to English.</p>
+            <p>Powered by AI, this tool automatically detects, translates, and redraws Japanese text on manga pages into English. Upload an image or provide a URL to a chapter to get started.</p>
         </header>
 
         <div class="controls">
@@ -412,6 +464,29 @@ header p {
             </div>
             <button id="translate-btn">Translate</button>
         </div>
+
+        <section class="features">
+            <div class="feature-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <h3>Advanced OCR</h3>
+                <p>Detects and extracts Japanese text from any image, even with complex layouts.</p>
+            </div>
+            <div class="feature-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-4.44a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8.78a2 2 0 0 0-.59-1.41l-4.44-4.44a2 2 0 0 0-1.41-.59z"></path><path d="M14 2v4a2 2 0 0 0 2 2h4"></path><path d="M10 18h1"></path><path d="M14 18h1"></path><path d="M10 14h4"></path><path d="M10 11h4"></path><path d="M10 8h1"></path></svg>
+                <h3>Batch Translation</h3>
+                <p>Translates all text bubbles at once for faster and more consistent results.</p>
+            </div>
+            <div class="feature-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"></path></svg>
+                <h3>Seamless Redrawing</h3>
+                <p>Automatically cleans the original text and redraws the English translation with a fitting font.</p>
+            </div>
+            <div class="feature-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <h3>Chapter Support</h3>
+                <p>Provide a URL to a chapter page and translate all images in one go.</p>
+            </div>
+        </section>
 
         <div id="loading-indicator" class="hidden">
             <div class="spinner"></div>
@@ -435,6 +510,16 @@ header p {
             const loadingIndicator = document.getElementById('loading-indicator');
             const resultsDiv = document.getElementById('results');
             const errorMessageDiv = document.getElementById('error-message');
+
+            const loadingMessages = [
+                'Warming up the AI engine...',
+                'Analyzing image layout...',
+                'Detecting text bubbles...',
+                'Extracting Japanese characters...',
+                'Consulting the translation matrix...',
+                'Redrawing text bubbles...'
+            ];
+            let loadingInterval;
 
             const resultsContent = document.getElementById('results-content');
             const fileUploadText = document.querySelector('.file-upload-label .file-upload-text');
@@ -460,9 +545,16 @@ header p {
                 hideError();
                 resultsContent.innerHTML = '';
                 resultsDiv.classList.add('hidden');
-                loadingIndicator.classList.remove('hidden');
-                loadingIndicator.querySelector('p').textContent = 'Starting translation...';
                 translateBtn.disabled = true;
+
+                // Start animated loading text
+                loadingIndicator.classList.remove('hidden');
+                let messageIndex = 0;
+                loadingIndicator.querySelector('p').textContent = loadingMessages[messageIndex];
+                loadingInterval = setInterval(() => {
+                    messageIndex = (messageIndex + 1) % loadingMessages.length;
+                    loadingIndicator.querySelector('p').textContent = loadingMessages[messageIndex];
+                }, 2000);
 
                 const formData = new FormData();
                 if (imageFile) {
@@ -517,10 +609,12 @@ header p {
                             if (data) {
                                 const parsedData = JSON.parse(data);
                                 if (event === 'init') {
+                                    clearInterval(loadingInterval); // Stop generic animation
                                     totalPages = parsedData.total_pages;
                                     document.querySelector('#results h2').textContent = `Results (${totalPages} Page${totalPages > 1 ? 's' : ''})`;
                                     loadingIndicator.querySelector('p').textContent = `Translating page 1 of ${totalPages}...`;
                                 } else if (event === 'page_result') {
+                                    clearInterval(loadingInterval); // Stop if it's still running
                                     appendPageResult(parsedData, totalPages);
                                     const nextPageIndex = parsedData.page_index + 2;
                                     if (nextPageIndex <= totalPages) {
@@ -538,6 +632,7 @@ header p {
                 } catch (error) {
                     showError(`Translation failed: ${error.message}`);
                 } finally {
+                    clearInterval(loadingInterval);
                     loadingIndicator.classList.add('hidden');
                     translateBtn.disabled = false;
                 }

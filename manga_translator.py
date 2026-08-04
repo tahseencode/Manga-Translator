@@ -325,7 +325,7 @@ def translate_all(texts, target: str = "en", source: str = "ja") -> list:
 # ----------------------------------------------------------------------
 # Step 6: redraw the page with translated text in place of the original
 # ----------------------------------------------------------------------
-def pick_font_size(box, text, font_path=None, max_size=46, min_size=9):
+def pick_font_size(box, text, font_path=None, max_size=41, min_size=8):
     x1, y1, x2, y2 = box
     box_w, box_h = x2 - x1, y2 - y1
     size = max_size
