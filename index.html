@@ -9,24 +9,23 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
-    --bg-color: #10101a;
-    --surface-color: rgba(22, 33, 62, 0.6);
-    --primary-color: #1f2a47;
-    --secondary-color: #b44a5b;
-    --glow-color: rgba(233, 69, 96, 0.5);
+    --bg-color: #0d0c1d;
+    --surface-color: rgba(17, 25, 40, 0.75);
+    --primary-color: #1a2036;
+    --secondary-color: #f92571; /* Vibrant Pink */
+    --accent-color: #00d4ff;   /* Vibrant Cyan */
+    --glow-color: rgba(249, 37, 113, 0.6);
     --text-color: #e0e0e0;
     --text-muted: #a9a9a9;
-    --border-color: rgba(255, 255, 255, 0.1);
+    --border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* --- General Styles --- */
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
-    background-image: url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&w=2070');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
+    background: linear-gradient(-45deg, #0d0c1d, #1f2a47, #f92571, #00d4ff);
+    background-size: 400% 400%;
+    animation: gradient-bg 25s ease infinite;
     color: var(--text-color);
     margin: 0;
     padding: 40px 20px;
@@ -38,20 +37,26 @@ body {
     position: relative;
 }
 
+@keyframes gradient-bg {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
 /* --- Background Graphic Arts --- */
 body::before, body::after {
     content: '';
     position: fixed;
     z-index: -1;
-    filter: blur(200px);
-    opacity: 0.2;
+    filter: blur(180px);
+    opacity: 0.35;
     border-radius: 50%;
 }
 
 body::before {
     width: 400px;
     height: 400px;
-    background: var(--secondary-color);
+    background: var(--glow-color);
     top: -100px;
     left: -100px;
 }
@@ -59,7 +64,7 @@ body::before {
 body::after {
     width: 500px;
     height: 500px;
-    background: #4a00e0; /* A new purple color for contrast */
+    background: var(--accent-color);
     bottom: -150px;
     right: -150px;
 }
@@ -67,7 +72,7 @@ body::after {
 .container {
     width: 100%;
     max-width: 1200px;
-    background-color: var(--surface-color);
+    background-color: var(--surface-color); /* Updated in :root */
     backdrop-filter: blur(30px) saturate(150%);
     -webkit-backdrop-filter: blur(30px) saturate(150%);
     border-radius: 24px;
@@ -101,7 +106,7 @@ header h1 {
     margin: 0;
     font-weight: 700;
     letter-spacing: -1px;
-    background: linear-gradient(45deg, #e94560, #d946ef);
+    background: linear-gradient(45deg, var(--secondary-color), var(--accent-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -175,8 +180,9 @@ header p {
 }
 
 .file-upload-label:hover {
-    background-color: var(--primary-color);
+    background-color: rgba(249, 37, 113, 0.1);
     border-color: var(--secondary-color);
+    box-shadow: 0 0 20px 0px var(--glow-color);
 }
 
 .file-upload-label svg {
@@ -208,8 +214,8 @@ header p {
 }
 
 #translate-btn {
-    background: linear-gradient(45deg, #e94560, #c62a88, #8e2de2);
-    background-size: 200% auto;
+    background: linear-gradient(45deg, var(--secondary-color), var(--accent-color), var(--secondary-color));
+    background-size: 300% 300%;
     color: white;
     border: none;
     padding: 14px 32px;
@@ -217,15 +223,21 @@ header p {
     font-size: 1.1rem;
     font-weight: bold;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s, background-position 0.4s;
+    transition: transform 0.2s, box-shadow 0.2s;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     margin-top: 16px;
+    animation: gradient-button 5s ease infinite;
+}
+
+@keyframes gradient-button {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 #translate-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 20px var(--glow-color);
-    background-position: right center;
 }
 
 #translate-btn:disabled {
@@ -322,8 +334,8 @@ header p {
 }
 
 .image-wrapper:hover {
-    transform: translateZ(40px) rotateX(5deg) rotateY(-5deg);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    transform: translateZ(50px) rotateX(3deg) rotateY(-4deg);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.55), 0 0 20px -5px var(--glow-color);
 }
 
 .image-wrapper::before {
