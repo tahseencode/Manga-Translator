@@ -1,0 +1,13 @@
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [05/Aug/2026 02:34:12] "POST /translate HTTP/1.1" 200 -
+[32m[INFO] 2026-08-05 02:34:12,940 [RapidOCR] base.py:23: Using engine_name: onnxruntime[0m
+[32m[INFO] 2026-08-05 02:34:13,130 [RapidOCR] download_file.py:60: File exists and is valid: C:\Raw Manga Translator\venv\Lib\site-packages\rapidocr\models\PP-OCRv6_det_small.onnx[0m
+[32m[INFO] 2026-08-05 02:34:13,132 [RapidOCR] main.py:63: Using C:\Raw Manga Translator\venv\Lib\site-packages\rapidocr\models\PP-OCRv6_det_small.onnx[0m
+[32m[INFO] 2026-08-05 02:34:13,250 [RapidOCR] base.py:23: Using engine_name: onnxruntime[0m
+[32m[INFO] 2026-08-05 02:34:13,254 [RapidOCR] download_file.py:60: File exists and is valid: C:\Raw Manga Translator\venv\Lib\site-packages\rapidocr\models\ch_ppocr_mobile_v2.0_cls_mobile.onnx[0m
+[32m[INFO] 2026-08-05 02:34:13,255 [RapidOCR] main.py:63: Using C:\Raw Manga Translator\venv\Lib\site-packages\rapidocr\models\ch_ppocr_mobile_v2.0_cls_mobile.onnx[0m
+[32m[INFO] 2026-08-05 02:34:13,389 [RapidOCR] base.py:23: Using engine_name: onnxruntime[0m
+[32m[INFO] 2026-08-05 02:34:13,439 [RapidOCR] download_file.py:60: File exists and is valid: C:\Raw Manga Translator\venv\Lib\site-packages\rapidocr\models\PP-OCRv6_rec_small.onnx[0m
+[32m[INFO] 2026-08-05 02:34:13,441 [RapidOCR] main.py:63: Using C:\Raw Manga Translator\venv\Lib\site-packages\rapidocr\models\PP-OCRv6_rec_small.onnx[0m
