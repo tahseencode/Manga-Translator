@@ -398,6 +398,12 @@ def translate_manga_page(image_source, detector: str = "easyocr", target: str = 
     else:
         raise TypeError("image_source must be a URL (str), image data (bytes), or PIL Image object")
 
+    MAX_DIM = 1600
+    if max(image.size) > MAX_DIM:
+        ratio = MAX_DIM / max(image.size)
+        new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
+        image = image.resize(new_size, Image.LANCZOS)
+
     ocr_engine = get_ocr_engine()
     if detector == "bubbles":
         print(f"{page_prefix}[2/6] Detecting text regions (detector=bubbles)")
@@ -421,5 +427,5 @@ def translate_manga_page(image_source, detector: str = "easyocr", target: str = 
     print(f"{page_prefix}[5/6] Rendering translated page...")
     result_img = redraw_page(image, kept_boxes, translations, font_path=font_path)
     print(f"{page_prefix}[6/6] Done.")
-    # Return the boxes and text for the interactive preview
+    del image  # release the decoded PIL image now that we're done with it
     return kept_boxes, recognized_texts, translations, result_img
